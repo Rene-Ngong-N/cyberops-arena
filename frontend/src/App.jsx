@@ -58,13 +58,19 @@ function App() {
     }
 
     function onRoomUpdate(updatedRoom) {
+      console.log('ROOM UPDATE:', updatedRoom.status, updatedRoom.round)
       setRoom(updatedRoom)
+    }
+    function onGameFeedback(result) {
+      setMultiplayerFeedback(result)
+      setSubmitted(true)
     }
 
     socket.on('connect', onConnect)
     socket.on('disconnect', onDisconnect)
     socket.on('connect_error', onConnectError)
     socket.on('room:update', onRoomUpdate)
+    socket.on('game:feedback', onGameFeedback)
 
     if (!socket.connected) socket.connect()
     else setConnected(true)
@@ -74,6 +80,7 @@ function App() {
       socket.off('disconnect', onDisconnect)
       socket.off('connect_error', onConnectError)
       socket.off('room:update', onRoomUpdate)
+      socket.off('game:feedback', onGameFeedback)
       socket.disconnect()
     }
   }, [])
@@ -89,6 +96,8 @@ function App() {
   const [roomCode, setRoomCode] = useState('')
   const [error, setError] = useState('')
   const [connected, setConnected] = useState(socket.connected)
+  const [multiplayerFeedback, setMultiplayerFeedback] = useState(null)
+  const [submitted, setSubmitted] = useState(false)
 
   const incident = incidents[round]
   const finished = round >= incidents.length
@@ -178,6 +187,19 @@ function App() {
       socket.emit('game:start', { code: room.code })
     }
   }
+  function submitMultiplayerAnswer(answerIndex) {
+    if (!room || room.status !== 'playing' || submitted) return
+
+    setSubmitted(true)
+    socket.emit('game:answer', {
+      code: room.code,
+      answer: answerIndex
+    })
+  }
+  useEffect(() => {
+    setSubmitted(false)
+    setMultiplayerFeedback(null)
+  }, [room?.round])
 
 
   return (
@@ -264,10 +286,94 @@ function App() {
                   )
                 )}
 
-                {room.status === 'playing' && (
-                  <p className="good">Mission started! Gameplay integration is next.</p>
+
+                {room.status === 'playing' && room.incident && (
+                  <div className="multiplayer-game">
+                    <h3>⚠ ACTIVE SECURITY INCIDENT</h3>
+
+                    <p className="eyebrow">
+                      ROUND {room.round + 1} OF 3
+                    </p>
+
+                    <h2>{room.incident.title}</h2>
+                    <p>{room.incident.description}</p>
+
+                    <h3>Choose your response:</h3>
+
+                    <div className="choices">
+                      {room.incident.choices.map((choice, index) => (
+                        <button
+                          key={index}
+                          className="choice"
+                          disabled={submitted}
+                          onClick={() => submitMultiplayerAnswer(index)}
+                        >
+                          <span>{String.fromCharCode(65 + index)}</span>
+                          {choice}
+                        </button>
+                      ))}
+                    </div>
+
+                    {multiplayerFeedback && (
+                      <div className={`feedback ${multiplayerFeedback.correct ? 'correct' : 'incorrect'
+                        }`}>
+                        {multiplayerFeedback.correct
+                          ? '✓ Correct! You earned 100 points.'
+                          : '✕ Incorrect response. Health reduced by 25%.'}
+                      </div>
+                    )}
+
+                    {submitted && (
+                      <p>Waiting for other players to finish...</p>
+                    )}
+
+                    <h3>🏆 Live Leaderboard</h3>
+
+                    <div className="player-list">
+                      {[...room.players]
+                        .sort((a, b) => b.score - a.score)
+                        .map((p, index) => (
+                          <div className="player-entry" key={p.id}>
+                            <span>
+                              {index + 1}. {p.name}
+                            </span>
+                            <span>
+                              {p.score} PTS | {p.health}% HP
+                            </span>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
                 )}
+
               </>
+            )}
+            {room?.status === 'finished' && (
+              <div className="game-results">
+                <h2>🏆 Mission Complete!</h2>
+                <p>Final Multiplayer Rankings</p>
+
+                {[...room.players]
+                  .sort((a, b) => b.score - a.score)
+                  .map((p, index) => (
+                    <div className="player-entry" key={p.id}>
+                      <span>
+                        {index === 0 ? '🏆' : '🛡️'} {p.name}
+                      </span>
+                      <span>{p.score} Points</span>
+                    </div>
+                  ))}
+
+                <p className="good">
+                  {(() => {
+                    const highest = Math.max(...room.players.map(p => p.score))
+                    const winners = room.players.filter(p => p.score === highest)
+                    return winners.length > 1
+                      ? 'Mission ended in a tie!'
+                      : `${winners[0].name} wins the CyberOps Arena!`
+                  })()}
+                </p>
+              </div>
             )}
 
             {error && <p className="danger">{error}</p>}
