@@ -224,3 +224,21 @@ footer {
     padding: 20px;
   }
 }
+.player-entry {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  padding: 15px 20px;
+  background: #1a2b45;
+  border: 1px solid #334963;
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+
+.player-entry span:last-child {
+  color: #26d9ef;
+  font-size: 12px;
+  font-weight: bold;
+  letter-spacing: 1px;
+}

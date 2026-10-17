@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from 'react'
 import './App.css'
-import { socket } from './socket' 
+import { socket } from './socket'
 const incidents = [
   {
     title: 'Suspicious AWS Login',
@@ -39,31 +39,56 @@ const incidents = [
 ]
 
 function App() {
+
   useEffect(() => {
-  function onConnect() {
-    console.log('CyberOps multiplayer connected:', socket.id)
-  }
+    function onConnect() {
+      console.log('CyberOps multiplayer connected:', socket.id)
+      setConnected(true)
+    }
 
-  function onConnectError(error) {
-    console.error('Multiplayer connection failed:', error.message)
-  }
+    function onDisconnect() {
+      setConnected(false)
+      setRoom(null)
+    }
 
-  socket.on('connect', onConnect)
-  socket.on('connect_error', onConnectError)
-  socket.connect()
+    function onConnectError(err) {
+      console.error('Multiplayer connection failed:', err.message)
+      setConnected(false)
+      setError('Unable to connect to multiplayer server.')
+    }
 
-  return () => {
-    socket.off('connect', onConnect)
-    socket.off('connect_error', onConnectError)
-    socket.disconnect()
-  }
-}, [])
+    function onRoomUpdate(updatedRoom) {
+      setRoom(updatedRoom)
+    }
+
+    socket.on('connect', onConnect)
+    socket.on('disconnect', onDisconnect)
+    socket.on('connect_error', onConnectError)
+    socket.on('room:update', onRoomUpdate)
+
+    if (!socket.connected) socket.connect()
+    else setConnected(true)
+
+    return () => {
+      socket.off('connect', onConnect)
+      socket.off('disconnect', onDisconnect)
+      socket.off('connect_error', onConnectError)
+      socket.off('room:update', onRoomUpdate)
+      socket.disconnect()
+    }
+  }, [])
+
+
   const [player, setPlayer] = useState('')
   const [started, setStarted] = useState(false)
   const [round, setRound] = useState(0)
   const [score, setScore] = useState(0)
   const [health, setHealth] = useState(100)
   const [feedback, setFeedback] = useState(null)
+  const [room, setRoom] = useState(null)
+  const [roomCode, setRoomCode] = useState('')
+  const [error, setError] = useState('')
+  const [connected, setConnected] = useState(socket.connected)
 
   const incident = incidents[round]
   const finished = round >= incidents.length
@@ -92,6 +117,69 @@ function App() {
     setFeedback(null)
   }
 
+  function createRoom() {
+    if (!player.trim()) {
+      setError('Please enter your player name.')
+      return
+    }
+
+    if (!socket.connected) {
+      setError('Multiplayer server is not connected.')
+      return
+    }
+
+    setError('')
+
+    socket.timeout(5000).emit(
+      'room:create',
+      { name: player.trim() },
+      (err, response) => {
+        if (err) {
+          setError('Server did not respond. Please try again.')
+        } else if (response?.error) {
+          setError(response.error)
+        } else {
+          setRoomCode(response.code)
+        }
+      }
+    )
+  }
+
+  function joinRoom() {
+    if (!player.trim() || !roomCode.trim()) {
+      setError('Enter your name and room code.')
+      return
+    }
+
+    if (!socket.connected) {
+      setError('Multiplayer server is not connected.')
+      return
+    }
+
+    setError('')
+
+    socket.timeout(5000).emit(
+      'room:join',
+      { name: player.trim(), code: roomCode.trim().toUpperCase() },
+      (err, response) => {
+        if (err) {
+          setError('Server did not respond. Please try again.')
+        } else if (response?.error) {
+          setError(response.error)
+        } else {
+          setRoomCode(response.code)
+        }
+      }
+    )
+  }
+
+  function startMultiplayer() {
+    if (room && room.players[0]?.id === socket.id) {
+      socket.emit('game:start', { code: room.code })
+    }
+  }
+
+
   return (
     <div className="arena">
       <header className="header">
@@ -101,23 +189,90 @@ function App() {
 
       <main>
         <div className="intro">
-          <p className="eyebrow">CLOUD DEFENSE SIMULATOR</p>
+          <p className="eyebrow">CLOUD DEFENSE SIMULATOR BY RENE N</p>
           <h1>Defend the Cloud.</h1>
           <p>Investigate threats. Make critical decisions. Protect your infrastructure.</p>
         </div>
 
         {!started ? (
+
           <section className="panel welcome">
-            <h2>Enter the Arena</h2>
-            <p>Your cybersecurity mission starts here.</p>
-            <input
-              placeholder="Enter your player name"
-              value={player}
-              maxLength={24}
-              onChange={event => setPlayer(event.target.value)}
-            />
-            <button onClick={startGame}>START MISSION →</button>
+            {!room ? (
+              <>
+                <h2>Enter the Multiplayer Arena</h2>
+                <p>Challenge other cloud defenders in real time.</p>
+
+                <input
+                  placeholder="Enter your player name"
+                  value={player}
+                  maxLength={24}
+                  onChange={event => setPlayer(event.target.value)}
+                />
+
+                <p className={connected ? 'good' : 'danger'}>
+                  {connected ? '● Multiplayer Connected' : '● Connecting to Server'}
+                </p>
+
+                <button onClick={createRoom} disabled={!connected}>
+                  CREATE ROOM
+                </button>
+
+                <p>— OR —</p>
+
+                <input
+                  placeholder="Enter 6-character room code"
+                  value={roomCode}
+                  maxLength={6}
+                  onChange={event => setRoomCode(event.target.value.toUpperCase())}
+                />
+
+                <button onClick={joinRoom} disabled={!connected}>
+                  JOIN ROOM
+                </button>
+              </>
+            ) : (
+              <>
+                <h2>Multiplayer Lobby</h2>
+                <p>ROOM CODE</p>
+                <h1 className="room-code">{room.code}</h1>
+
+                <button onClick={() => navigator.clipboard.writeText(room.code)}>
+                  COPY ROOM CODE
+                </button>
+
+                <h3>Connected Players ({room.players.length}/4)</h3>
+
+                <div className="player-list">
+                  {room.players.map((p, index) => (
+                    <div className="player-entry" key={p.id}>
+                      <span>🛡️ {p.name}</span>
+                      <span>{index === 0 ? 'HOST' : 'READY'}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {room.status === 'waiting' && (
+                  room.players[0]?.id === socket.id ? (
+                    <button
+                      disabled={room.players.length < 2}
+                      onClick={startMultiplayer}
+                    >
+                      START MULTIPLAYER MISSION
+                    </button>
+                  ) : (
+                    <p>Waiting for the host to start the mission...</p>
+                  )
+                )}
+
+                {room.status === 'playing' && (
+                  <p className="good">Mission started! Gameplay integration is next.</p>
+                )}
+              </>
+            )}
+
+            {error && <p className="danger">{error}</p>}
           </section>
+
         ) : (
           <>
             <div className="stats">
