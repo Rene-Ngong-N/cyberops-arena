@@ -1,7 +1,7 @@
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import './App.css'
-
+import { socket } from './socket' 
 const incidents = [
   {
     title: 'Suspicious AWS Login',
@@ -39,6 +39,25 @@ const incidents = [
 ]
 
 function App() {
+  useEffect(() => {
+  function onConnect() {
+    console.log('CyberOps multiplayer connected:', socket.id)
+  }
+
+  function onConnectError(error) {
+    console.error('Multiplayer connection failed:', error.message)
+  }
+
+  socket.on('connect', onConnect)
+  socket.on('connect_error', onConnectError)
+  socket.connect()
+
+  return () => {
+    socket.off('connect', onConnect)
+    socket.off('connect_error', onConnectError)
+    socket.disconnect()
+  }
+}, [])
   const [player, setPlayer] = useState('')
   const [started, setStarted] = useState(false)
   const [round, setRound] = useState(0)
