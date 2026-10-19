@@ -309,6 +309,28 @@ function App() {
 
                 {room.status === 'playing' && room.incident && (
                   <div className="multiplayer-game">
+
+                    <div className="cloud-health-panel">
+                      <div className="cloud-health-header">
+                        <strong>🛡️ CLOUD INFRASTRUCTURE HEALTH</strong>
+                        <span>{room.cloudHealth ?? 100}%</span>
+                      </div>
+
+                      <div className="cloud-health-track">
+                        <div
+                          className="cloud-health-fill"
+                          style={{
+                            width: `${room.cloudHealth ?? 100}%`,
+                            backgroundColor:
+                              (room.cloudHealth ?? 100) <= 30
+                                ? '#ef4444'
+                                : (room.cloudHealth ?? 100) <= 60
+                                  ? '#f59e0b'
+                                  : '#22c55e'
+                          }}
+                        />
+                      </div>
+                    </div>
                     <h3>⚠ ACTIVE SECURITY INCIDENT</h3>
 
                     <p className="eyebrow">
@@ -366,10 +388,30 @@ function App() {
                   </div>
                 )}
 
+
                 {room.status === 'finished' && (
                   <div className="game-results">
-                    <h2>🏆 Mission Complete!</h2>
-                    <p>Final Multiplayer Rankings</p>
+
+                    {room.cloudHealth > 0 ? (
+                      <>
+                        <h2>🛡️ MISSION SUCCESS!</h2>
+                        <p className="good">
+                          Your team successfully defended the cloud infrastructure!
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <h2>🚨 MISSION FAILED!</h2>
+                        <p className="incorrect">
+                          Cloud infrastructure health dropped to 40% or below.
+                          The attackers overwhelmed your defenses.
+                        </p>
+                      </>
+                    )}
+
+                    <h3>☁️ Final Cloud Health: {room.cloudHealth ?? 100}%</h3>
+
+                    <h3>🏆 Final Multiplayer Rankings</h3>
 
                     {[...room.players]
                       .sort((a, b) => b.score - a.score)
@@ -384,9 +426,10 @@ function App() {
                       {(() => {
                         const highest = Math.max(...room.players.map(p => p.score))
                         const winners = room.players.filter(p => p.score === highest)
+
                         return winners.length > 1
                           ? 'Mission ended in a tie!'
-                          : `${winners[0].name} wins the CyberOps Arena!`
+                          : `${winners[0].name} earned the highest score!`
                       })()}
                     </p>
 
@@ -400,6 +443,7 @@ function App() {
                     ) : (
                       <p>Waiting for the host to restart the mission...</p>
                     )}
+
                   </div>
                 )}
               </>

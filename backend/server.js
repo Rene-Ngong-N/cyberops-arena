@@ -136,6 +136,7 @@ function publicRoom(room) {
         code: room.code,
         status: room.status,
         round: room.round,
+        cloudHealth: room.cloudHealth,
         players: [...room.players.values()].map(player => ({
             id: player.id,
             name: player.name,
@@ -174,6 +175,7 @@ io.on('connection', socket => {
             host: socket.id,
             status: 'waiting',
             round: 0,
+            cloudHealth: 100,
             players: new Map(),
             answers: new Set(),
             incidents: incidents.map(incident => ({
@@ -247,6 +249,7 @@ io.on('connection', socket => {
 
         room.incidents = newIncidents
         room.round = 0
+        room.cloudHealth = 100
         room.answers.clear()
         room.status = 'playing'
 
@@ -290,6 +293,7 @@ io.on('connection', socket => {
 
         // Start the new mission
         room.round = 0
+        room.cloudHealth = 100
         room.answers.clear()
         room.status = 'playing'
 
@@ -306,10 +310,16 @@ io.on('connection', socket => {
 
         room.answers.add(socket.id)
         const player = room.players.get(socket.id)
+
         const correct = answer === room.incidents[room.round].correct
 
-        if (correct) player.score += 100
-        else player.health = Math.max(0, player.health - 25)
+        if (correct) {
+            player.score += 100
+            room.cloudHealth = Math.min(100, room.cloudHealth + 10)
+        } else {
+            player.health = Math.max(0, player.health - 25)
+            room.cloudHealth = Math.max(0, room.cloudHealth - 20)
+        }
 
         io.to(socket.id).emit('game:feedback', {
             correct,
@@ -318,15 +328,23 @@ io.on('connection', socket => {
 
         broadcast(room)
 
-        if (room.answers.size === room.players.size) {
+
+        if (room.cloudHealth <= 40) {
+            room.status = 'finished'
+            room.answers.clear()
+
+            console.log('TEAM DEFEATED:', room.code)
+            broadcast(room)
+        } else if (room.answers.size === room.players.size) {
             room.round++
             room.answers.clear()
 
             if (room.round >= room.incidents.length) {
                 room.status = 'finished'
+                console.log('TEAM VICTORY:', room.code)
             }
-            console.log('GAME STATUS:', room.code, room.status, room.round)
 
+            console.log('GAME STATUS:', room.code, room.status, room.round)
             broadcast(room)
         }
     })

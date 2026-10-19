@@ -268,3 +268,33 @@ footer {
 .game-results h2 {
   color: #36e3a0;
 }
+
+.cloud-health-panel {
+  margin: 20px 0;
+  padding: 16px;
+  background: #111827;
+  border: 1px solid #374151;
+  border-radius: 12px;
+}
+
+.cloud-health-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  color: #f9fafb;
+}
+
+.cloud-health-track {
+  height: 14px;
+  background: #374151;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.cloud-health-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.4s ease, background-color 0.4s ease;
+}
