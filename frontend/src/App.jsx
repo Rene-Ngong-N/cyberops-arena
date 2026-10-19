@@ -297,6 +297,15 @@ function App() {
                   )
                 )}
 
+                {room.status === 'generating' && (
+                  <div className="ai-loading">
+                    <h3>🤖 AI MISSION GENERATION</h3>
+                    <p>OpenAI is preparing your cybersecurity incidents...</p>
+                    <p>Analyzing AWS, Kubernetes, and cloud security threats.</p>
+                    <p>Please wait. Your mission will begin automatically.</p>
+                  </div>
+                )}
+
 
                 {room.status === 'playing' && room.incident && (
                   <div className="multiplayer-game">

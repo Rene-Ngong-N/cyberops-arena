@@ -4,6 +4,8 @@ import { createServer } from 'node:http'
 import { randomBytes } from 'node:crypto'
 import { Server } from 'socket.io'
 import cors from 'cors'
+import 'dotenv/config'
+import OpenAI from 'openai'
 
 const app = express()
 app.use(cors())
@@ -13,7 +15,9 @@ const httpServer = createServer(app)
 const io = new Server(httpServer, {
     cors: { origin: true, methods: ['GET', 'POST'] }
 })
-
+const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY
+})
 const rooms = new Map()
 
 const incidents = [
@@ -48,6 +52,84 @@ const incidents = [
         correct: 2
     }
 ]
+async function generateAIIncidents() {
+    try {
+        console.log('Generating AI cybersecurity incidents...')
+
+        const response = await openai.responses.create({
+            model: 'gpt-4.1-mini',
+            instructions: `You are a cloud cybersecurity trainer
+creating realistic incident-response questions for a
+multiplayer educational game.
+
+Return only valid JSON with this structure:
+{
+  "incidents": [
+    {
+      "title": "Short incident title",
+      "description": "A realistic incident scenario and question",
+      "choices": [
+        "Response option 1",
+        "Response option 2",
+        "Response option 3"
+      ],
+      "correct": 0
+    }
+  ]
+}
+
+Generate exactly 3 incidents.
+Cover AWS, Kubernetes, and cloud security.
+Each incident must have exactly 3 choices.
+The correct value must be the zero-based index
+of the correct choice: 0, 1, or 2.
+Only one choice should be clearly correct.
+Do not include the correct answer in the description.`,
+            input: 'Generate exactly three new cloud cybersecurity incidents. Return the response as valid JSON only.',
+            text: {
+                format: { type: 'json_object' }
+            },
+            max_output_tokens: 1500
+        })
+
+        const data = JSON.parse(response.output_text)
+
+        if (!Array.isArray(data.incidents) ||
+            data.incidents.length !== 3) {
+            throw new Error('Expected exactly 3 incidents')
+        }
+
+        for (const incident of data.incidents) {
+            if (
+                typeof incident.title !== 'string' ||
+                !incident.title.trim() ||
+                typeof incident.description !== 'string' ||
+                !incident.description.trim() ||
+                !Array.isArray(incident.choices) ||
+                incident.choices.length !== 3 ||
+                !incident.choices.every(choice =>
+                    typeof choice === 'string' && choice.trim()
+                ) ||
+                !Number.isInteger(incident.correct) ||
+                incident.correct < 0 ||
+                incident.correct > 2
+            ) {
+                throw new Error('Invalid AI incident format')
+            }
+        }
+
+        console.log('Successfully generated 3 AI incidents!')
+        return data.incidents
+
+    } catch (error) {
+        console.error('AI generation failed:', error.message)
+        console.log('Using existing cybersecurity incidents.')
+        return incidents.map(incident => ({
+            ...incident,
+            choices: [...incident.choices]
+        }))
+    }
+}
 
 function publicRoom(room) {
     return {
@@ -60,11 +142,12 @@ function publicRoom(room) {
             score: player.score,
             health: player.health
         })),
-        incident: room.status === 'playing'
+
+        incident: room.status === 'playing' && room.incidents[room.round]
             ? {
-                title: incidents[room.round].title,
-                description: incidents[room.round].description,
-                choices: incidents[room.round].choices
+                title: room.incidents[room.round].title,
+                description: room.incidents[room.round].description,
+                choices: room.incidents[room.round].choices
             }
             : null
     }
@@ -85,13 +168,18 @@ io.on('connection', socket => {
             code = randomBytes(3).toString('hex').toUpperCase()
         } while (rooms.has(code))
 
+
         const room = {
             code,
             host: socket.id,
             status: 'waiting',
             round: 0,
             players: new Map(),
-            answers: new Set()
+            answers: new Set(),
+            incidents: incidents.map(incident => ({
+                ...incident,
+                choices: [...incident.choices]
+            }))
         }
 
         room.players.set(socket.id, {
@@ -134,18 +222,39 @@ io.on('connection', socket => {
         broadcast(room)
     })
 
-    socket.on('game:start', ({ code }) => {
+
+    socket.on('game:start', async ({ code }) => {
         const room = rooms.get(code)
+
         if (!room || room.host !== socket.id) return
         if (room.status !== 'waiting' || room.players.size < 2) return
 
-        room.status = 'playing'
+        // Prevent duplicate AI requests while generating questions
+        room.status = 'generating'
+        broadcast(room)
+
+        // Generate new incidents, or use fallback questions
+        const newIncidents = await generateAIIncidents()
+
+        // Check that the room still exists and has enough players
+        if (rooms.get(code) !== room) return
+
+        if (room.players.size < 2) {
+            room.status = 'waiting'
+            broadcast(room)
+            return
+        }
+
+        room.incidents = newIncidents
         room.round = 0
         room.answers.clear()
+        room.status = 'playing'
+
         broadcast(room)
     })
 
-    socket.on('game:restart', ({ code }) => {
+
+    socket.on('game:restart', async ({ code }) => {
         const room = rooms.get(code)
 
         // Only the host can restart a completed game
@@ -153,18 +262,38 @@ io.on('connection', socket => {
         if (room.status !== 'finished') return
         if (room.players.size < 2) return
 
-        // Reset all player scores and health
+        // Prevent multiple restart requests while AI generates
+        room.status = 'generating'
+        broadcast(room)
+
+        // Generate three fresh incidents
+        const newIncidents = await generateAIIncidents()
+
+        // Make sure the room still exists
+        if (rooms.get(code) !== room) return
+
+        // If too many players disconnected, stop the restart
+        if (room.players.size < 2) {
+            room.status = 'finished'
+            broadcast(room)
+            return
+        }
+
+        // Reset scores and health
         for (const player of room.players.values()) {
             player.score = 0
             player.health = 100
         }
 
-        // Start a fresh multiplayer mission
+        // Replace the previous questions
+        room.incidents = newIncidents
+
+        // Start the new mission
         room.round = 0
         room.answers.clear()
         room.status = 'playing'
 
-        // Update all connected players
+        // Update both players
         broadcast(room)
     })
 
@@ -173,18 +302,18 @@ io.on('connection', socket => {
         if (!room || room.status !== 'playing') return
         if (!room.players.has(socket.id)) return
         if (room.answers.has(socket.id)) return
-        if (!Number.isInteger(answer) || answer < 0 || answer >= incidents[room.round].choices.length) return
+        if (!Number.isInteger(answer) || answer < 0 || answer >= room.incidents[room.round].choices.length) return
 
         room.answers.add(socket.id)
         const player = room.players.get(socket.id)
-        const correct = answer === incidents[room.round].correct
+        const correct = answer === room.incidents[room.round].correct
 
         if (correct) player.score += 100
         else player.health = Math.max(0, player.health - 25)
 
         io.to(socket.id).emit('game:feedback', {
             correct,
-            correctAnswer: incidents[room.round].correct
+            correctAnswer: room.incidents[room.round].correct
         })
 
         broadcast(room)
@@ -193,7 +322,7 @@ io.on('connection', socket => {
             room.round++
             room.answers.clear()
 
-            if (room.round >= incidents.length) {
+            if (room.round >= room.incidents.length) {
                 room.status = 'finished'
             }
             console.log('GAME STATUS:', room.code, room.status, room.round)
@@ -222,7 +351,7 @@ io.on('connection', socket => {
                 room.answers.size === room.players.size) {
                 room.round++
                 room.answers.clear()
-                if (room.round >= incidents.length) {
+                if (room.round >= room.incidents.length) {
                     room.status = 'finished'
                 }
             }
