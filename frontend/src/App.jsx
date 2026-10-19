@@ -187,6 +187,17 @@ function App() {
       socket.emit('game:start', { code: room.code })
     }
   }
+
+  function restartMultiplayer() {
+    if (!room || room.status !== 'finished') return
+    if (room.players[0]?.id !== socket.id) return
+
+    setSubmitted(false)
+    setMultiplayerFeedback(null)
+    setError('')
+
+    socket.emit('game:restart', { code: room.code })
+  }
   function submitMultiplayerAnswer(answerIndex) {
     if (!room || room.status !== 'playing' || submitted) return
 
@@ -346,34 +357,43 @@ function App() {
                   </div>
                 )}
 
+                {room.status === 'finished' && (
+                  <div className="game-results">
+                    <h2>🏆 Mission Complete!</h2>
+                    <p>Final Multiplayer Rankings</p>
+
+                    {[...room.players]
+                      .sort((a, b) => b.score - a.score)
+                      .map((p, index) => (
+                        <div className="player-entry" key={p.id}>
+                          <span>{index === 0 ? '🏆' : '🛡️'} {p.name}</span>
+                          <span>{p.score} Points</span>
+                        </div>
+                      ))}
+
+                    <p className="good">
+                      {(() => {
+                        const highest = Math.max(...room.players.map(p => p.score))
+                        const winners = room.players.filter(p => p.score === highest)
+                        return winners.length > 1
+                          ? 'Mission ended in a tie!'
+                          : `${winners[0].name} wins the CyberOps Arena!`
+                      })()}
+                    </p>
+
+                    {room.players[0]?.id === socket.id ? (
+                      <button
+                        onClick={restartMultiplayer}
+                        disabled={room.players.length < 2}
+                      >
+                        🔄 PLAY AGAIN
+                      </button>
+                    ) : (
+                      <p>Waiting for the host to restart the mission...</p>
+                    )}
+                  </div>
+                )}
               </>
-            )}
-            {room?.status === 'finished' && (
-              <div className="game-results">
-                <h2>🏆 Mission Complete!</h2>
-                <p>Final Multiplayer Rankings</p>
-
-                {[...room.players]
-                  .sort((a, b) => b.score - a.score)
-                  .map((p, index) => (
-                    <div className="player-entry" key={p.id}>
-                      <span>
-                        {index === 0 ? '🏆' : '🛡️'} {p.name}
-                      </span>
-                      <span>{p.score} Points</span>
-                    </div>
-                  ))}
-
-                <p className="good">
-                  {(() => {
-                    const highest = Math.max(...room.players.map(p => p.score))
-                    const winners = room.players.filter(p => p.score === highest)
-                    return winners.length > 1
-                      ? 'Mission ended in a tie!'
-                      : `${winners[0].name} wins the CyberOps Arena!`
-                  })()}
-                </p>
-              </div>
             )}
 
             {error && <p className="danger">{error}</p>}
@@ -453,7 +473,7 @@ function App() {
       </main>
 
       <footer>CYBEROPS ARENA • AI-POWERED CLOUD DEFENSE CHALLENGE</footer>
-    </div>
+    </div >
   )
 }
 

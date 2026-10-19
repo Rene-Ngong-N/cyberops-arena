@@ -145,6 +145,29 @@ io.on('connection', socket => {
         broadcast(room)
     })
 
+    socket.on('game:restart', ({ code }) => {
+        const room = rooms.get(code)
+
+        // Only the host can restart a completed game
+        if (!room || room.host !== socket.id) return
+        if (room.status !== 'finished') return
+        if (room.players.size < 2) return
+
+        // Reset all player scores and health
+        for (const player of room.players.values()) {
+            player.score = 0
+            player.health = 100
+        }
+
+        // Start a fresh multiplayer mission
+        room.round = 0
+        room.answers.clear()
+        room.status = 'playing'
+
+        // Update all connected players
+        broadcast(room)
+    })
+
     socket.on('game:answer', ({ code, answer }) => {
         const room = rooms.get(code)
         if (!room || room.status !== 'playing') return
