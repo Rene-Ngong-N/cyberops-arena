@@ -99,7 +99,63 @@ Each incident must have exactly 3 choices.
 The correct value must be the zero-based index
 of the correct choice: 0, 1, or 2.
 Only one choice should be clearly correct.
-Do not include the correct answer in the description.`,
+
+CYBERSECURITY ANSWER ACCURACY:
+The correct answer must be the most effective immediate
+incident-response action for the specific threat described.
+
+Prioritize containment of active compromises before
+secondary actions such as monitoring or general hardening.
+
+For credential compromise, prefer disabling or revoking
+the actual compromised credentials or permissions.
+
+For Kubernetes compromise, identify the affected
+workloads, identities, and access permissions precisely.
+
+For active data exfiltration, prioritize stopping the
+unauthorized access or data transfer immediately.
+
+Avoid marking logging, auditing, or unrelated credential
+rotation as the best immediate action when a more direct
+containment option is available.
+
+Ensure the selected correct index points to the genuinely
+best answer among the three choices.
+
+Before returning the JSON, internally review every incident:
+
+1. Identify the attacker's active threat.
+2. Determine which choice directly contains that threat.
+3. Compare that choice against the other two options.
+4. Verify that the correct index points to the best
+   immediate containment action.
+5. If another choice is better, fix the choices or index.
+
+For active incidents, investigation and monitoring alone
+must not be marked correct when an effective containment
+action is available.
+
+Do not include this review in the JSON response.
+
+Do not include the correct answer in the description.
+
+Make all three choices realistic cybersecurity response actions.
+Incorrect choices should be plausible but less effective,
+riskier, or inappropriate for the immediate situation.
+
+Avoid obviously foolish choices.
+Use technically accurate AWS and Kubernetes terminology.
+Each correct response must be a clear, defensible first action.
+
+
+First determine the technically correct response for each incident.
+Then arrange the three choices so the correct answers appear
+at different positions across the three rounds.
+
+Never change which response is correct merely to vary
+the answer position. Cybersecurity accuracy takes priority.`,
+
             input: 'Generate exactly three new cloud cybersecurity incidents. Return the response as valid JSON only.',
             text: {
                 format: { type: 'json_object' }
