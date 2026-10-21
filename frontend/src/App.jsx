@@ -66,11 +66,17 @@ function App() {
       setSubmitted(true)
     }
 
+    function onGameTimeout(result) {
+      setTimeoutNotification(result)
+    }
+
+
     socket.on('connect', onConnect)
     socket.on('disconnect', onDisconnect)
     socket.on('connect_error', onConnectError)
     socket.on('room:update', onRoomUpdate)
     socket.on('game:feedback', onGameFeedback)
+    socket.on('game:timeout', onGameTimeout)
 
     if (!socket.connected) socket.connect()
     else setConnected(true)
@@ -81,6 +87,7 @@ function App() {
       socket.off('connect_error', onConnectError)
       socket.off('room:update', onRoomUpdate)
       socket.off('game:feedback', onGameFeedback)
+      socket.off('game:timeout', onGameTimeout)
       socket.disconnect()
     }
   }, [])
@@ -98,6 +105,7 @@ function App() {
   const [error, setError] = useState('')
   const [connected, setConnected] = useState(socket.connected)
   const [multiplayerFeedback, setMultiplayerFeedback] = useState(null)
+  const [timeoutNotification, setTimeoutNotification] = useState(null)
   const [submitted, setSubmitted] = useState(false)
 
   const incident = incidents[round]
@@ -195,6 +203,7 @@ function App() {
 
     setSubmitted(false)
     setMultiplayerFeedback(null)
+    setTimeoutNotification(null)
     setError('')
 
     socket.emit('game:restart', { code: room.code })
@@ -217,6 +226,23 @@ function App() {
     setSubmitted(false)
     setMultiplayerFeedback(null)
   }, [room?.round])
+
+  useEffect(() => {
+    if (room?.status === 'generating' || room?.status === 'waiting') {
+      setTimeoutNotification(null)
+    }
+  }, [room?.status])
+
+  useEffect(() => {
+    if (!timeoutNotification) return
+
+    const timer = setTimeout(() => {
+      setTimeoutNotification(null)
+    }, 5000)
+
+    return () => clearTimeout(timer)
+  }, [timeoutNotification])
+
 
   // SYNCHRONIZED MULTIPLAYER COUNTDOWN TIMER
   useEffect(() => {
@@ -338,6 +364,15 @@ function App() {
                 {room.status === 'playing' && room.incident && (
                   <div className="multiplayer-game">
 
+                    {timeoutNotification && (
+                      <div className="timeout-warning">
+                        <h3>🚨 ROUND TIMEOUT!</h3>
+                        <p>{timeoutNotification.message}</p>
+                        <p>❤️ Individual Health Penalty: -{timeoutNotification.healthPenalty}%</p>
+                        <p>☁️ Cloud Health Penalty: -{timeoutNotification.cloudPenalty}%</p>
+                        <p>Remaining Player Health: {timeoutNotification.playerHealth}%</p>
+                      </div>
+                    )}
                     <div className="round-timer">
                       <h3>⏱️ TIME REMAINING</h3>
                       <h2
@@ -430,6 +465,15 @@ function App() {
                 {room.status === 'finished' && (
                   <div className="game-results">
 
+                    {timeoutNotification && (
+                      <div className="timeout-warning">
+                        <h3>🚨 ROUND TIMEOUT!</h3>
+                        <p>{timeoutNotification.message}</p>
+                        <p>❤️ Individual Health Penalty: -{timeoutNotification.healthPenalty}%</p>
+                        <p>☁️ Cloud Health Penalty: -{timeoutNotification.cloudPenalty}%</p>
+                        <p>Remaining Player Health: {timeoutNotification.playerHealth}%</p>
+                      </div>
+                    )}
                     {room.cloudHealth > 40 ? (
                       <>
                         <h2>🛡️ MISSION SUCCESS!</h2>

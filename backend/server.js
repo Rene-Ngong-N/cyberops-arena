@@ -159,6 +159,61 @@ function broadcast(room) {
     io.to(room.code).emit('room:update', publicRoom(room))
 }
 
+function handleRoundTimeout(room) {
+    // Only process active missions
+    if (room.status !== 'playing') return
+
+    // Only process expired rounds
+    if (!room.roundEndsAt || Date.now() < room.roundEndsAt) return
+
+    console.log('ROUND TIMEOUT:', room.code, room.round + 1)
+
+    // Penalize players who did not answer
+
+    for (const [playerId, player] of room.players) {
+        if (!room.answers.has(playerId)) {
+            player.health = Math.max(0, player.health - 25)
+            room.cloudHealth = Math.max(0, room.cloudHealth - 20)
+
+            // Notify only the player who missed the deadline
+            io.to(playerId).emit('game:timeout', {
+                message: 'You did not respond before the deadline.',
+                healthPenalty: 25,
+                cloudPenalty: 20,
+                playerHealth: player.health
+            })
+        }
+    }
+
+    room.answers.clear()
+
+    // End the mission if cloud health reaches the failure threshold
+    if (room.cloudHealth <= 40) {
+        room.status = 'finished'
+        console.log('TEAM DEFEATED:', room.code)
+    } else {
+        // Otherwise advance to the next round
+        room.round++
+
+        if (room.round >= room.incidents.length) {
+            room.status = 'finished'
+            console.log('TEAM VICTORY:', room.code)
+        } else {
+            // Reset the countdown for the next round
+            room.roundEndsAt = Date.now() + 45_000
+        }
+    }
+
+    broadcast(room)
+}
+
+
+setInterval(() => {
+    for (const room of rooms.values()) {
+        handleRoundTimeout(room)
+    }
+}, 250)
+
 io.on('connection', socket => {
     socket.on('room:create', ({ name }, reply) => {
         if (typeof name !== 'string' || !name.trim()) {
@@ -305,6 +360,7 @@ io.on('connection', socket => {
     socket.on('game:answer', ({ code, answer }) => {
         const room = rooms.get(code)
         if (!room || room.status !== 'playing') return
+        if (!room.roundEndsAt || Date.now() >= room.roundEndsAt) return
         if (!room.players.has(socket.id)) return
         if (room.answers.has(socket.id)) return
         if (!Number.isInteger(answer) || answer < 0 || answer >= room.incidents[room.round].choices.length) return
@@ -336,6 +392,7 @@ io.on('connection', socket => {
 
             console.log('TEAM DEFEATED:', room.code)
             broadcast(room)
+
         } else if (room.answers.size === room.players.size) {
             room.round++
             room.answers.clear()
@@ -343,6 +400,9 @@ io.on('connection', socket => {
             if (room.round >= room.incidents.length) {
                 room.status = 'finished'
                 console.log('TEAM VICTORY:', room.code)
+            } else {
+                // Give players 45 seconds for the next round
+                room.roundEndsAt = Date.now() + 45_000
             }
 
             console.log('GAME STATUS:', room.code, room.status, room.round)

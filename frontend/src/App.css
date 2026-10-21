@@ -312,3 +312,22 @@ footer {
   font-size: 36px;
   margin: 8px 0;
 }
+
+.timeout-warning {
+  background: #450a0a;
+  border: 2px solid #ef4444;
+  color: #fecaca;
+  padding: 16px;
+  margin-bottom: 20px;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.timeout-warning h3 {
+  color: #f87171;
+  margin-bottom: 10px;
+}
+
+.timeout-warning p {
+  margin: 6px 0;
+}
