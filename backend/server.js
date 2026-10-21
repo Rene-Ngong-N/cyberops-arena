@@ -79,6 +79,21 @@ Return only valid JSON with this structure:
 }
 
 Generate exactly 3 incidents.
+
+The 3 incidents must form ONE connected cyberattack storyline
+against the same organization's cloud infrastructure.
+
+Round 1 (Easy): Initial compromise of an AWS resource or identity.
+Round 2 (Medium): The same attacker attempts lateral movement
+into Kubernetes or connected cloud infrastructure.
+Round 3 (Hard): The attack escalates into a critical threat
+against production workloads or sensitive data.
+
+Each round must reference the evolving attack situation.
+Increase the difficulty from Round 1 to Round 3.
+The storyline must remain logical regardless of players'
+previous answers because the game does not branch.
+
 Cover AWS, Kubernetes, and cloud security.
 Each incident must have exactly 3 choices.
 The correct value must be the zero-based index
