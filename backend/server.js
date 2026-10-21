@@ -52,6 +52,27 @@ const incidents = [
         correct: 2
     }
 ]
+
+function shuffleIncidentChoices(incident) {
+    const choicesWithAnswers = incident.choices.map((choice, index) => ({
+        choice,
+        isCorrect: index === incident.correct
+    }))
+
+    for (let i = choicesWithAnswers.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1))
+
+            ;[choicesWithAnswers[i], choicesWithAnswers[j]] =
+                [choicesWithAnswers[j], choicesWithAnswers[i]]
+    }
+
+    return {
+        ...incident,
+        choices: choicesWithAnswers.map(item => item.choice),
+        correct: choicesWithAnswers.findIndex(item => item.isCorrect)
+    }
+}
+
 async function generateAIIncidents() {
     try {
         console.log('Generating AI cybersecurity incidents...')
@@ -190,15 +211,13 @@ the answer position. Cybersecurity accuracy takes priority.`,
         }
 
         console.log('Successfully generated 3 AI incidents!')
-        return data.incidents
+        return data.incidents.map(shuffleIncidentChoices)
 
     } catch (error) {
         console.error('AI generation failed:', error.message)
         console.log('Using existing cybersecurity incidents.')
-        return incidents.map(incident => ({
-            ...incident,
-            choices: [...incident.choices]
-        }))
+
+        return incidents.map(shuffleIncidentChoices)
     }
 }
 
