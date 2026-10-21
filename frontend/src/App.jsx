@@ -92,6 +92,7 @@ function App() {
   const [score, setScore] = useState(0)
   const [health, setHealth] = useState(100)
   const [feedback, setFeedback] = useState(null)
+  const [secondsLeft, setSecondsLeft] = useState(45)
   const [room, setRoom] = useState(null)
   const [roomCode, setRoomCode] = useState('')
   const [error, setError] = useState('')
@@ -212,6 +213,33 @@ function App() {
     setMultiplayerFeedback(null)
   }, [room?.round])
 
+  useEffect(() => {
+    setSubmitted(false)
+    setMultiplayerFeedback(null)
+  }, [room?.round])
+
+  // SYNCHRONIZED MULTIPLAYER COUNTDOWN TIMER
+  useEffect(() => {
+    if (room?.status !== 'playing' || !room.roundEndsAt) {
+      return
+    }
+
+    const updateTimer = () => {
+      const remaining = Math.max(
+        0,
+        Math.ceil((room.roundEndsAt - Date.now()) / 1000)
+      )
+
+      setSecondsLeft(remaining)
+    }
+
+    updateTimer()
+
+    const interval = setInterval(updateTimer, 250)
+
+    return () => clearInterval(interval)
+  }, [room?.status, room?.roundEndsAt])
+
 
   return (
     <div className="arena">
@@ -310,6 +338,16 @@ function App() {
                 {room.status === 'playing' && room.incident && (
                   <div className="multiplayer-game">
 
+                    <div className="round-timer">
+                      <h3>⏱️ TIME REMAINING</h3>
+                      <h2
+                        style={{
+                          color: secondsLeft <= 10 ? '#ef4444' : '#22c55e'
+                        }}
+                      >
+                        {secondsLeft}s
+                      </h2>
+                    </div>
                     <div className="cloud-health-panel">
                       <div className="cloud-health-header">
                         <strong>🛡️ CLOUD INFRASTRUCTURE HEALTH</strong>
@@ -392,7 +430,7 @@ function App() {
                 {room.status === 'finished' && (
                   <div className="game-results">
 
-                    {room.cloudHealth > 0 ? (
+                    {room.cloudHealth > 40 ? (
                       <>
                         <h2>🛡️ MISSION SUCCESS!</h2>
                         <p className="good">

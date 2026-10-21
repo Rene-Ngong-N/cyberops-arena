@@ -137,6 +137,7 @@ function publicRoom(room) {
         status: room.status,
         round: room.round,
         cloudHealth: room.cloudHealth,
+        roundEndsAt: room.roundEndsAt ?? null,
         players: [...room.players.values()].map(player => ({
             id: player.id,
             name: player.name,
@@ -252,7 +253,7 @@ io.on('connection', socket => {
         room.cloudHealth = 100
         room.answers.clear()
         room.status = 'playing'
-
+        room.roundEndsAt = Date.now() + 45_000
         broadcast(room)
     })
 
@@ -296,7 +297,7 @@ io.on('connection', socket => {
         room.cloudHealth = 100
         room.answers.clear()
         room.status = 'playing'
-
+        room.roundEndsAt = Date.now() + 45_000
         // Update both players
         broadcast(room)
     })
