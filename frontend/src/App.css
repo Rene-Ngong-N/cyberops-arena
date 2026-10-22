@@ -331,3 +331,202 @@ footer {
 .timeout-warning p {
   margin: 6px 0;
 }
+
+/* ===== SOC COMMAND CENTER HEADER ===== */
+
+.soc-status-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 20px;
+  padding: 24px;
+  margin-bottom: 24px;
+  background: linear-gradient(135deg, #0f172a, #1e293b);
+  border: 1px solid #334155;
+  border-left: 5px solid #06b6d4;
+  border-radius: 14px;
+  color: #f8fafc;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+.soc-status-header h2 {
+  margin: 8px 0;
+  color: #38bdf8;
+  font-size: 1.6rem;
+}
+
+.soc-status-header p {
+  margin: 5px 0;
+  color: #cbd5e1;
+}
+
+.soc-status-indicators {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.soc-status-badge,
+.soc-threat-badge {
+  display: inline-block;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.soc-status-badge {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid #ef4444;
+  color: #fca5a5;
+}
+
+.soc-threat-badge {
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid #f59e0b;
+  color: #fcd34d;
+}
+
+@media (max-width: 600px) {
+  .soc-status-header {
+    padding: 18px;
+  }
+
+  .soc-status-header h2 {
+    font-size: 1.3rem;
+  }
+}
+
+/* ===== SOC ATTACK PROGRESSION ===== */
+
+.soc-mission-progress {
+  margin-bottom: 24px;
+  padding: 20px;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 12px;
+}
+
+.soc-mission-progress h3 {
+  margin: 0 0 18px;
+  color: #e2e8f0;
+  font-size: 0.95rem;
+  letter-spacing: 1px;
+}
+
+.soc-progress-stages {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.soc-progress-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  border-radius: 10px;
+  border: 1px solid #475569;
+  background: #1e293b;
+  transition: all 0.3s ease;
+}
+
+.soc-progress-stage span {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.soc-progress-stage strong {
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.soc-progress-stage.completed {
+  border-color: #22c55e;
+  background: rgba(34, 197, 94, 0.12);
+  color: #86efac;
+}
+
+.soc-progress-stage.active {
+  border-color: #06b6d4;
+  background: rgba(6, 182, 212, 0.15);
+  color: #67e8f9;
+  box-shadow: 0 0 16px rgba(6, 182, 212, 0.2);
+}
+
+.soc-progress-stage.pending {
+  border-color: #475569;
+  color: #94a3b8;
+}
+
+@media (max-width: 600px) {
+  .soc-progress-stages {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===== SOC LIVE SECURITY EVENT FEED ===== */
+
+.soc-event-feed {
+  margin-bottom: 24px;
+  padding: 20px;
+  background: #0b1220;
+  border: 1px solid #334155;
+  border-radius: 12px;
+}
+
+.soc-event-feed h3 {
+  margin: 0 0 18px;
+  color: #67e8f9;
+  font-size: 0.95rem;
+  letter-spacing: 1px;
+}
+
+.soc-event {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  background: #111c2e;
+  border-left: 3px solid #06b6d4;
+  border-radius: 6px;
+  color: #e2e8f0;
+  font-size: 0.9rem;
+}
+
+.soc-event:last-child {
+  margin-bottom: 0;
+}
+
+.soc-event-time {
+  flex-shrink: 0;
+  min-width: 90px;
+  padding: 5px 8px;
+  background: #1e293b;
+  border-radius: 4px;
+  color: #38bdf8;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.soc-event:first-of-type {
+  border-left-color: #ef4444;
+}
+
+@media (max-width: 600px) {
+  .soc-event {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .soc-event-time {
+    min-width: auto;
+  }
+}

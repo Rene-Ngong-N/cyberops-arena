@@ -106,6 +106,20 @@ function App() {
   const [connected, setConnected] = useState(socket.connected)
   const [multiplayerFeedback, setMultiplayerFeedback] = useState(null)
   const [timeoutNotification, setTimeoutNotification] = useState(null)
+  const [securityEvents, setSecurityEvents] = useState([])
+
+  const addSecurityEvent = (message, type = 'info') => {
+    const newEvent = {
+      id: crypto.randomUUID(),
+      timestamp: new Date().toLocaleTimeString(),
+      message,
+      type
+    }
+
+    setSecurityEvents(previousEvents =>
+      [newEvent, ...previousEvents].slice(0, 20)
+    )
+  }
   const [submitted, setSubmitted] = useState(false)
 
   const incident = incidents[round]
@@ -364,6 +378,54 @@ function App() {
                 {room.status === 'playing' && room.incident && (
                   <div className="multiplayer-game">
 
+                    <div className="soc-status-header">
+                      <div>
+                        <p className="eyebrow">🖥️ CYBEROPS SECURITY OPERATIONS CENTER</p>
+                        <h2>☁️ CLOUD UNDER SIEGE</h2>
+                        <p>Live Cloud Infrastructure Defense Mission</p>
+                      </div>
+
+                      <div className="soc-status-indicators">
+                        <span className="soc-status-badge">
+                          🔴 ACTIVE INCIDENT
+                        </span>
+
+                        <span className="soc-threat-badge">
+                          ⚠️ THREAT LEVEL: {
+                            room.round === 0
+                              ? 'MEDIUM'
+                              : room.round === 1
+                                ? 'HIGH'
+                                : 'CRITICAL'
+                          }
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="soc-mission-progress">
+                      <h3>🎯 ATTACK PROGRESSION</h3>
+
+                      <div className="soc-progress-stages">
+                        {[
+                          'INITIAL COMPROMISE',
+                          'LATERAL MOVEMENT',
+                          'DATA EXFILTRATION'
+                        ].map((stage, index) => (
+                          <div
+                            key={stage}
+                            className={`soc-progress-stage ${index === room.round
+                              ? 'active'
+                              : index < room.round
+                                ? 'completed'
+                                : 'pending'
+                              }`}
+                          >
+                            <span>STAGE {index + 1}</span>
+                            <strong>{stage}</strong>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                     {timeoutNotification && (
                       <div className="timeout-warning">
                         <h3>🚨 ROUND TIMEOUT!</h3>
@@ -402,6 +464,25 @@ function App() {
                                   : '#22c55e'
                           }}
                         />
+                      </div>
+                    </div>
+
+                    <div className="soc-event-feed">
+                      <h3>📡 LIVE SECURITY EVENT FEED</h3>
+
+                      <div className="soc-event">
+                        <span className="soc-event-time">LIVE</span>
+                        <span>🔴 Security incident detected</span>
+                      </div>
+
+                      <div className="soc-event">
+                        <span className="soc-event-time">MONITORING</span>
+                        <span>🛡️ Cloud infrastructure health: {room.cloudHealth ?? 100}%</span>
+                      </div>
+
+                      <div className="soc-event">
+                        <span className="soc-event-time">MISSION</span>
+                        <span>⚠️ Active response stage: {room.round + 1} of 3</span>
                       </div>
                     </div>
                     <h3>⚠ ACTIVE SECURITY INCIDENT</h3>
