@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import './App.css'
 import { socket } from './socket'
 const incidents = [
@@ -61,9 +61,19 @@ function App() {
       console.log('ROOM UPDATE:', updatedRoom.status, updatedRoom.round)
       setRoom(updatedRoom)
     }
+
     function onGameFeedback(result) {
       setMultiplayerFeedback(result)
       setSubmitted(true)
+
+      const message = result.correct
+        ? '✅ Security response successful. Threat mitigation accepted.'
+        : '❌ Security response failed. Infrastructure defenses weakened.'
+
+      logSecurityEvent(
+        message,
+        result.correct ? 'success' : 'critical'
+      )
     }
 
     function onGameTimeout(result) {
@@ -101,13 +111,24 @@ function App() {
   const [feedback, setFeedback] = useState(null)
   const [secondsLeft, setSecondsLeft] = useState(45)
   const [room, setRoom] = useState(null)
+  const previousCloudHealth = useRef(null)
   const [roomCode, setRoomCode] = useState('')
   const [error, setError] = useState('')
   const [connected, setConnected] = useState(socket.connected)
   const [multiplayerFeedback, setMultiplayerFeedback] = useState(null)
   const [timeoutNotification, setTimeoutNotification] = useState(null)
   const [securityEvents, setSecurityEvents] = useState([])
-
+  const logSecurityEvent = useCallback((message, type = 'info') => {
+    setSecurityEvents(previousEvents => [
+      {
+        id: crypto.randomUUID(),
+        timestamp: new Date().toLocaleTimeString(),
+        message,
+        type
+      },
+      ...previousEvents
+    ].slice(0, 20))
+  }, [])
   const addSecurityEvent = (message, type = 'info') => {
     const newEvent = {
       id: crypto.randomUUID(),
@@ -219,7 +240,7 @@ function App() {
     setMultiplayerFeedback(null)
     setTimeoutNotification(null)
     setError('')
-
+    setSecurityEvents([])
     socket.emit('game:restart', { code: room.code })
   }
   function submitMultiplayerAnswer(answerIndex) {
@@ -257,6 +278,92 @@ function App() {
     return () => clearTimeout(timer)
   }, [timeoutNotification])
 
+  // MONITOR CLOUD INFRASTRUCTURE HEALTH CHANGES
+  useEffect(() => {
+    const currentHealth = room?.cloudHealth
+
+    if (room?.status !== 'playing' || typeof currentHealth !== 'number') {
+      previousCloudHealth.current = null
+      return
+    }
+
+    const previousHealth = previousCloudHealth.current
+
+    if (previousHealth !== null && previousHealth !== currentHealth) {
+      const difference = currentHealth - previousHealth
+
+      const message = difference > 0
+        ? `🛡️ Cloud Health recovered from ${previousHealth}% to ${currentHealth}%.`
+        : `🚨 Cloud Health decreased from ${previousHealth}% to ${currentHealth}%.`
+
+      logSecurityEvent(
+        message,
+        difference > 0 ? 'success' : 'critical'
+      )
+    }
+
+    previousCloudHealth.current = currentHealth
+  }, [room?.status, room?.cloudHealth, logSecurityEvent])
+
+  // RECORD MULTIPLAYER MISSION OUTCOME
+  useEffect(() => {
+    if (room?.status !== 'finished') return
+
+    const finalHealth = room.cloudHealth ?? 0
+    const succeeded = finalHealth > 40
+
+    setSecurityEvents(previousEvents => {
+      const missionKey = `${room.code}-${room.round}-${room.roundEndsAt}-finished`
+
+      if (previousEvents.some(event => event.missionKey === missionKey)) {
+        return previousEvents
+      }
+
+      const newEvent = {
+        id: crypto.randomUUID(),
+        missionKey,
+        timestamp: new Date().toLocaleTimeString(),
+        message: succeeded
+          ? `🏆 MISSION SUCCESS! Cloud infrastructure defended. Final Health: ${finalHealth}%.`
+          : `🚨 MISSION FAILED! Cloud defenses compromised. Final Health: ${finalHealth}%.`,
+        type: succeeded ? 'success' : 'critical'
+      }
+
+      return [newEvent, ...previousEvents].slice(0, 20)
+    })
+  }, [room?.status, room?.code, room?.round, room?.roundEndsAt, room?.cloudHealth])
+
+  // CLEAR SECURITY EVENTS WHEN A NEW MISSION STARTS
+  useEffect(() => {
+    if (room?.status === 'generating') {
+      setSecurityEvents([])
+    }
+  }, [room?.status])
+
+  // RECORD NEW CYBERSECURITY INCIDENTS
+  useEffect(() => {
+    if (room?.status !== 'playing' || !room.incident) {
+      return
+    }
+
+    setSecurityEvents(previousEvents => {
+      const incidentKey = `${room.code}-${room.round}-${room.incident.title}`
+
+      if (previousEvents.some(event => event.incidentKey === incidentKey)) {
+        return previousEvents
+      }
+
+      const newEvent = {
+        id: crypto.randomUUID(),
+        incidentKey,
+        timestamp: new Date().toLocaleTimeString(),
+        message: `🚨 New security incident detected: ${room.incident.title}`,
+        type: 'critical'
+      }
+
+      return [newEvent, ...previousEvents].slice(0, 20)
+    })
+  }, [room?.status, room?.code, room?.round, room?.incident?.title])
 
   // SYNCHRONIZED MULTIPLAYER COUNTDOWN TIMER
   useEffect(() => {
@@ -404,7 +511,6 @@ function App() {
 
                     <div className="soc-mission-progress">
                       <h3>🎯 ATTACK PROGRESSION</h3>
-
                       <div className="soc-progress-stages">
                         {[
                           'INITIAL COMPROMISE',
@@ -469,7 +575,14 @@ function App() {
 
                     <div className="soc-event-feed">
                       <h3>📡 LIVE SECURITY EVENT FEED</h3>
-
+                      {securityEvents.map(event => (
+                        <div className="soc-event" key={event.id}>
+                          <span className="soc-event-time">
+                            {event.timestamp}
+                          </span>
+                          <span>{event.message}</span>
+                        </div>
+                      ))}
                       <div className="soc-event">
                         <span className="soc-event-time">LIVE</span>
                         <span>🔴 Security incident detected</span>
@@ -545,6 +658,23 @@ function App() {
 
                 {room.status === 'finished' && (
                   <div className="game-results">
+
+                    <div className="soc-event-feed">
+                      <h3>📋 MISSION SECURITY REPORT</h3>
+
+                      {securityEvents.length === 0 ? (
+                        <p>No security events recorded.</p>
+                      ) : (
+                        securityEvents.map(event => (
+                          <div className="soc-event" key={event.id}>
+                            <span className="soc-event-time">
+                              {event.timestamp}
+                            </span>
+                            <span>{event.message}</span>
+                          </div>
+                        ))
+                      )}
+                    </div>
 
                     {timeoutNotification && (
                       <div className="timeout-warning">
