@@ -227,6 +227,7 @@ function publicRoom(room) {
         status: room.status,
         round: room.round,
         cloudHealth: room.cloudHealth,
+        securityEvents: room.securityEvents ?? [],
         roundEndsAt: room.roundEndsAt ?? null,
         players: [...room.players.values()].map(player => ({
             id: player.id,
