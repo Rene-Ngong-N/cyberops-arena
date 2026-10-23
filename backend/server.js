@@ -250,6 +250,21 @@ function broadcast(room) {
     io.to(room.code).emit('room:update', publicRoom(room))
 }
 
+function logSecurityEvent(room, message, type = 'info') {
+    if (!Array.isArray(room.securityEvents)) {
+        room.securityEvents = []
+    }
+
+    room.securityEvents.unshift({
+        id: randomBytes(8).toString('hex'),
+        timestamp: new Date().toISOString(),
+        message,
+        type
+    })
+
+    room.securityEvents = room.securityEvents.slice(0, 20)
+}
+
 function handleRoundTimeout(room) {
     // Only process active missions
     if (room.status !== 'playing') return
@@ -263,8 +278,17 @@ function handleRoundTimeout(room) {
 
     for (const [playerId, player] of room.players) {
         if (!room.answers.has(playerId)) {
+            const previousHealth = room.cloudHealth
             player.health = Math.max(0, player.health - 25)
             room.cloudHealth = Math.max(0, room.cloudHealth - 20)
+
+            if (room.cloudHealth < previousHealth) {
+                logSecurityEvent(
+                    room,
+                    `⏰ ${player.name} timed out. Cloud Health decreased from ${previousHealth}% to ${room.cloudHealth}%.`,
+                    'critical'
+                )
+            }
 
             // Notify only the player who missed the deadline
             io.to(playerId).emit('game:timeout', {
@@ -292,6 +316,12 @@ function handleRoundTimeout(room) {
         } else {
             // Reset the countdown for the next round
             room.roundEndsAt = Date.now() + 45_000
+
+            logSecurityEvent(
+                room,
+                `🚨 New security incident detected: ${room.incidents[room.round].title}`,
+                'critical'
+            )
         }
     }
 
@@ -323,6 +353,7 @@ io.on('connection', socket => {
             status: 'waiting',
             round: 0,
             cloudHealth: 100,
+            securityEvents: [],
             players: new Map(),
             answers: new Set(),
             incidents: incidents.map(incident => ({
@@ -341,6 +372,7 @@ io.on('connection', socket => {
         rooms.set(code, room)
         socket.join(code)
         reply({ code })
+        logSecurityEvent(room, `${name.trim().slice(0, 24)} created the multiplayer room`, 'info')
         broadcast(room)
     })
 
@@ -400,6 +432,13 @@ io.on('connection', socket => {
         room.answers.clear()
         room.status = 'playing'
         room.roundEndsAt = Date.now() + 45_000
+
+        logSecurityEvent(
+            room,
+            `🚨 New security incident detected: ${room.incidents[room.round].title}`,
+            'critical'
+        )
+
         broadcast(room)
     })
 
@@ -441,9 +480,16 @@ io.on('connection', socket => {
         // Start the new mission
         room.round = 0
         room.cloudHealth = 100
+        room.securityEvents = []
         room.answers.clear()
         room.status = 'playing'
         room.roundEndsAt = Date.now() + 45_000
+
+        logSecurityEvent(
+            room,
+            `🚨 New security incident detected: ${room.incidents[room.round].title}`,
+            'critical'
+        )
         // Update both players
         broadcast(room)
     })
@@ -460,7 +506,7 @@ io.on('connection', socket => {
         const player = room.players.get(socket.id)
 
         const correct = answer === room.incidents[room.round].correct
-
+        const previousHealth = room.cloudHealth
         if (correct) {
             player.score += 100
             room.cloudHealth = Math.min(100, room.cloudHealth + 10)
@@ -468,6 +514,26 @@ io.on('connection', socket => {
             player.health = Math.max(0, player.health - 25)
             room.cloudHealth = Math.max(0, room.cloudHealth - 20)
         }
+
+        if (room.cloudHealth !== previousHealth) {
+            const increased = room.cloudHealth > previousHealth
+
+            logSecurityEvent(
+                room,
+                increased
+                    ? `🛡️ Cloud Health recovered from ${previousHealth}% to ${room.cloudHealth}%.`
+                    : `🚨 Cloud Health decreased from ${previousHealth}% to ${room.cloudHealth}%.`,
+                increased ? 'success' : 'critical'
+            )
+        }
+
+        logSecurityEvent(
+            room,
+            correct
+                ? `✅ ${player.name} successfully contained the security threat`
+                : `❌ ${player.name} failed to contain the security threat`,
+            correct ? 'success' : 'critical'
+        )
 
         io.to(socket.id).emit('game:feedback', {
             correct,
@@ -494,6 +560,11 @@ io.on('connection', socket => {
             } else {
                 // Give players 45 seconds for the next round
                 room.roundEndsAt = Date.now() + 45_000
+                logSecurityEvent(
+                    room,
+                    `🚨 New security incident detected: ${room.incidents[room.round].title}`,
+                    'critical'
+                )
             }
 
             console.log('GAME STATUS:', room.code, room.status, room.round)
@@ -517,12 +588,22 @@ io.on('connection', socket => {
                 room.host = room.players.keys().next().value
             }
 
+
             if (room.status === 'playing' &&
                 room.answers.size === room.players.size) {
                 room.round++
                 room.answers.clear()
+
                 if (room.round >= room.incidents.length) {
                     room.status = 'finished'
+                } else {
+                    room.roundEndsAt = Date.now() + 45_000
+
+                    logSecurityEvent(
+                        room,
+                        `🚨 New security incident detected: ${room.incidents[room.round].title}`,
+                        'critical'
+                    )
                 }
             }
 
