@@ -305,31 +305,6 @@ function App() {
     }
   }, [room?.status])
 
-  // RECORD NEW CYBERSECURITY INCIDENTS
-  useEffect(() => {
-    if (room?.status !== 'playing' || !room.incident) {
-      return
-    }
-
-    setSecurityEvents(previousEvents => {
-      const incidentKey = `${room.code}-${room.round}-${room.incident.title}`
-
-      if (previousEvents.some(event => event.incidentKey === incidentKey)) {
-        return previousEvents
-      }
-
-      const newEvent = {
-        id: crypto.randomUUID(),
-        incidentKey,
-        timestamp: new Date().toISOString(),
-        message: `🚨 New security incident detected: ${room.incident.title}`,
-        type: 'critical'
-      }
-
-      return [newEvent, ...previousEvents].slice(0, 20)
-    })
-  }, [room?.status, room?.code, room?.round, room?.incident?.title])
-
   // SYNCHRONIZED MULTIPLAYER COUNTDOWN TIMER
   useEffect(() => {
     if (room?.status !== 'playing' || !room.roundEndsAt) {
