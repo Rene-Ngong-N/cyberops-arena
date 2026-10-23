@@ -103,7 +103,6 @@ function App() {
   const [feedback, setFeedback] = useState(null)
   const [secondsLeft, setSecondsLeft] = useState(45)
   const [room, setRoom] = useState(null)
-  const previousCloudHealth = useRef(null)
   const [roomCode, setRoomCode] = useState('')
   const [error, setError] = useState('')
   const [connected, setConnected] = useState(socket.connected)
@@ -270,32 +269,6 @@ function App() {
     return () => clearTimeout(timer)
   }, [timeoutNotification])
 
-  // MONITOR CLOUD INFRASTRUCTURE HEALTH CHANGES
-  useEffect(() => {
-    const currentHealth = room?.cloudHealth
-
-    if (room?.status !== 'playing' || typeof currentHealth !== 'number') {
-      previousCloudHealth.current = null
-      return
-    }
-
-    const previousHealth = previousCloudHealth.current
-
-    if (previousHealth !== null && previousHealth !== currentHealth) {
-      const difference = currentHealth - previousHealth
-
-      const message = difference > 0
-        ? `🛡️ Cloud Health recovered from ${previousHealth}% to ${currentHealth}%.`
-        : `🚨 Cloud Health decreased from ${previousHealth}% to ${currentHealth}%.`
-
-      logSecurityEvent(
-        message,
-        difference > 0 ? 'success' : 'critical'
-      )
-    }
-
-    previousCloudHealth.current = currentHealth
-  }, [room?.status, room?.cloudHealth, logSecurityEvent])
 
   // RECORD MULTIPLAYER MISSION OUTCOME
   useEffect(() => {
