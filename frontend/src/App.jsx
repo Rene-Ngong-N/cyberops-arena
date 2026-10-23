@@ -62,18 +62,10 @@ function App() {
       setRoom(updatedRoom)
     }
 
+
     function onGameFeedback(result) {
       setMultiplayerFeedback(result)
       setSubmitted(true)
-
-      const message = result.correct
-        ? '✅ Security response successful. Threat mitigation accepted.'
-        : '❌ Security response failed. Infrastructure defenses weakened.'
-
-      logSecurityEvent(
-        message,
-        result.correct ? 'success' : 'critical'
-      )
     }
 
     function onGameTimeout(result) {
