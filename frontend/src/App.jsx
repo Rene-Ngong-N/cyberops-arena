@@ -122,7 +122,7 @@ function App() {
     setSecurityEvents(previousEvents => [
       {
         id: crypto.randomUUID(),
-        timestamp: new Date().toLocaleTimeString(),
+        timestamp: new Date().toISOString(),
         message,
         type
       },
@@ -132,7 +132,7 @@ function App() {
   const addSecurityEvent = (message, type = 'info') => {
     const newEvent = {
       id: crypto.randomUUID(),
-      timestamp: new Date().toLocaleTimeString(),
+      timestamp: new Date().toISOString(),
       message,
       type
     }
@@ -322,7 +322,7 @@ function App() {
       const newEvent = {
         id: crypto.randomUUID(),
         missionKey,
-        timestamp: new Date().toLocaleTimeString(),
+        timestamp: new Date().toISOString(),
         message: succeeded
           ? `🏆 MISSION SUCCESS! Cloud infrastructure defended. Final Health: ${finalHealth}%.`
           : `🚨 MISSION FAILED! Cloud defenses compromised. Final Health: ${finalHealth}%.`,
@@ -356,7 +356,7 @@ function App() {
       const newEvent = {
         id: crypto.randomUUID(),
         incidentKey,
-        timestamp: new Date().toLocaleTimeString(),
+        timestamp: new Date().toISOString(),
         message: `🚨 New security incident detected: ${room.incident.title}`,
         type: 'critical'
       }
@@ -575,14 +575,20 @@ function App() {
 
                     <div className="soc-event-feed">
                       <h3>📡 LIVE SECURITY EVENT FEED</h3>
-                      {securityEvents.map(event => (
-                        <div className="soc-event" key={event.id}>
-                          <span className="soc-event-time">
-                            {event.timestamp}
-                          </span>
-                          <span>{event.message}</span>
-                        </div>
-                      ))}
+
+                      {[...(room.securityEvents ?? []), ...securityEvents]
+                        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+                        .map(event => (
+
+                          <div className="soc-event" key={event.id}>
+                            <span className="soc-event-time">
+                              {event.timestamp.includes('T')
+                                ? new Date(event.timestamp).toLocaleTimeString()
+                                : event.timestamp}
+                            </span>
+                            <span>{event.message}</span>
+                          </div>
+                        ))}
                       <div className="soc-event">
                         <span className="soc-event-time">LIVE</span>
                         <span>🔴 Security incident detected</span>
@@ -662,17 +668,23 @@ function App() {
                     <div className="soc-event-feed">
                       <h3>📋 MISSION SECURITY REPORT</h3>
 
-                      {securityEvents.length === 0 ? (
+                      {[...(room.securityEvents ?? []), ...securityEvents].length === 0 ? (
                         <p>No security events recorded.</p>
                       ) : (
-                        securityEvents.map(event => (
-                          <div className="soc-event" key={event.id}>
-                            <span className="soc-event-time">
-                              {event.timestamp}
-                            </span>
-                            <span>{event.message}</span>
-                          </div>
-                        ))
+
+                        [...(room.securityEvents ?? []), ...securityEvents]
+                          .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+                          .map(event => (
+
+                            <div className="soc-event" key={event.id}>
+                              <span className="soc-event-time">
+                                {event.timestamp.includes('T')
+                                  ? new Date(event.timestamp).toLocaleTimeString()
+                                  : event.timestamp}
+                              </span>
+                              <span>{event.message}</span>
+                            </div>
+                          ))
                       )}
                     </div>
 
