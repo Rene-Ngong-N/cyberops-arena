@@ -264,6 +264,19 @@ function logSecurityEvent(room, message, type = 'info') {
 
     room.securityEvents = room.securityEvents.slice(0, 20)
 }
+function logMissionOutcome(room) {
+    if (room.status !== 'finished') return
+
+    const succeeded = room.cloudHealth > 40
+
+    logSecurityEvent(
+        room,
+        succeeded
+            ? `🏆 MISSION SUCCESS! Cloud infrastructure defended. Final Health: ${room.cloudHealth}%.`
+            : `🚨 MISSION FAILED! Cloud defenses compromised. Final Health: ${room.cloudHealth}%.`,
+        succeeded ? 'success' : 'critical'
+    )
+}
 
 function handleRoundTimeout(room) {
     // Only process active missions
@@ -305,6 +318,7 @@ function handleRoundTimeout(room) {
     // End the mission if cloud health reaches the failure threshold
     if (room.cloudHealth <= 40) {
         room.status = 'finished'
+        logMissionOutcome(room)
         console.log('TEAM DEFEATED:', room.code)
     } else {
         // Otherwise advance to the next round
@@ -312,6 +326,7 @@ function handleRoundTimeout(room) {
 
         if (room.round >= room.incidents.length) {
             room.status = 'finished'
+            logMissionOutcome(room)
             console.log('TEAM VICTORY:', room.code)
         } else {
             // Reset the countdown for the next round
@@ -546,6 +561,7 @@ io.on('connection', socket => {
         if (room.cloudHealth <= 40) {
             room.status = 'finished'
             room.answers.clear()
+            logMissionOutcome(room)
 
             console.log('TEAM DEFEATED:', room.code)
             broadcast(room)
@@ -556,6 +572,7 @@ io.on('connection', socket => {
 
             if (room.round >= room.incidents.length) {
                 room.status = 'finished'
+                logMissionOutcome(room)
                 console.log('TEAM VICTORY:', room.code)
             } else {
                 // Give players 45 seconds for the next round
@@ -596,6 +613,7 @@ io.on('connection', socket => {
 
                 if (room.round >= room.incidents.length) {
                     room.status = 'finished'
+                    logMissionOutcome(room)
                 } else {
                     room.roundEndsAt = Date.now() + 45_000
 

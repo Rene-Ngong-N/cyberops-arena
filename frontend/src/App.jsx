@@ -270,34 +270,6 @@ function App() {
   }, [timeoutNotification])
 
 
-  // RECORD MULTIPLAYER MISSION OUTCOME
-  useEffect(() => {
-    if (room?.status !== 'finished') return
-
-    const finalHealth = room.cloudHealth ?? 0
-    const succeeded = finalHealth > 40
-
-    setSecurityEvents(previousEvents => {
-      const missionKey = `${room.code}-${room.round}-${room.roundEndsAt}-finished`
-
-      if (previousEvents.some(event => event.missionKey === missionKey)) {
-        return previousEvents
-      }
-
-      const newEvent = {
-        id: crypto.randomUUID(),
-        missionKey,
-        timestamp: new Date().toISOString(),
-        message: succeeded
-          ? `🏆 MISSION SUCCESS! Cloud infrastructure defended. Final Health: ${finalHealth}%.`
-          : `🚨 MISSION FAILED! Cloud defenses compromised. Final Health: ${finalHealth}%.`,
-        type: succeeded ? 'success' : 'critical'
-      }
-
-      return [newEvent, ...previousEvents].slice(0, 20)
-    })
-  }, [room?.status, room?.code, room?.round, room?.roundEndsAt, room?.cloudHealth])
-
   // CLEAR SECURITY EVENTS WHEN A NEW MISSION STARTS
   useEffect(() => {
     if (room?.status === 'generating') {
