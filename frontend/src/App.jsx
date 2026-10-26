@@ -627,6 +627,24 @@ function App() {
                     )}
 
                     <h3>☁️ Final Cloud Health: {room.cloudHealth ?? 100}%</h3>
+                    <div className="mission-summary">
+                      <h3>📊 Mission Summary</h3>
+
+                      <p>
+                        <strong>Mission Status:</strong>{' '}
+                        {room.cloudHealth > 40 ? 'SUCCESS' : 'FAILED'}
+                      </p>
+
+                      <p>
+                        <strong>Final Cloud Health:</strong>{' '}
+                        {room.cloudHealth ?? 100}%
+                      </p>
+
+                      <p>
+                        <strong>Incidents Completed:</strong>{' '}
+                        {Math.min(room.round + 1, 3)} / 3
+                      </p>
+                    </div>
 
                     <h3>🏆 Final Multiplayer Rankings</h3>
 
