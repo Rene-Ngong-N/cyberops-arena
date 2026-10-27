@@ -641,8 +641,10 @@ function App() {
                       </p>
 
                       <p>
-                        <strong>Incidents Completed:</strong>{' '}
-                        {Math.min(room.round + 1, 3)} / 3
+                        <p>
+                          <strong>Incidents Completed:</strong>{' '}
+                          {Math.min(room.round, 3)} / 3
+                        </p>
                       </p>
                     </div>
 
