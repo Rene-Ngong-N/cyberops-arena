@@ -592,3 +592,14 @@ footer {
     order: 2;
   }
 }
+/* Phase 8: Keep countdown visible during mobile gameplay */
+@media (max-width: 600px) {
+  .multiplayer-game .round-timer {
+    position: sticky;
+    top: 8px;
+    z-index: 100;
+    align-self: stretch;
+    background: #111827;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  }
+}
