@@ -577,3 +577,18 @@ footer {
     overflow-wrap: anywhere;
   }
 }
+/* Mobile gameplay: prioritize incident questions */
+@media (max-width: 600px) {
+  .multiplayer-game {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .multiplayer-game > .mobile-gameplay-content {
+    order: 1;
+  }
+
+  .multiplayer-game > .soc-event-feed {
+    order: 2;
+  }
+}

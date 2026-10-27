@@ -516,63 +516,65 @@ function App() {
                         <span>⚠️ Active response stage: {room.round + 1} of 3</span>
                       </div>
                     </div>
-                    <h3>⚠ ACTIVE SECURITY INCIDENT</h3>
+                    <div className="mobile-gameplay-content">
+                      <h3>⚠ ACTIVE SECURITY INCIDENT</h3>
 
-                    <p className="eyebrow">
-                      ROUND {room.round + 1} OF 3
-                    </p>
+                      <p className="eyebrow">
+                        ROUND {room.round + 1} OF 3
+                      </p>
 
-                    <h2>{room.incident.title}</h2>
-                    <p>{room.incident.description}</p>
+                      <h2>{room.incident.title}</h2>
+                      <p>{room.incident.description}</p>
 
-                    <h3>Choose your response:</h3>
+                      <h3>Choose your response:</h3>
 
-                    <div className="choices">
-                      {room.incident.choices.map((choice, index) => (
-                        <button
-                          key={index}
-                          className="choice"
-                          disabled={submitted}
-                          onClick={() => submitMultiplayerAnswer(index)}
-                        >
-                          <span>{String.fromCharCode(65 + index)}</span>
-                          {choice}
-                        </button>
-                      ))}
-                    </div>
-
-                    {multiplayerFeedback && (
-                      <div className={`feedback ${multiplayerFeedback.correct ? 'correct' : 'incorrect'
-                        }`}>
-                        {multiplayerFeedback.correct
-                          ? '✓ Correct! You earned 100 points.'
-                          : '✕ Incorrect response. Health reduced by 25%.'}
-                      </div>
-                    )}
-
-                    {submitted && (
-                      <p>Waiting for other players to finish...</p>
-                    )}
-
-                    <h3>🏆 Live Leaderboard</h3>
-
-                    <div className="player-list">
-                      {[...room.players]
-                        .sort((a, b) => b.score - a.score)
-                        .map((p, index) => (
-                          <div className="player-entry" key={p.id}>
-                            <span>
-                              {index + 1}. {p.name}
-                            </span>
-                            <span>
-                              {p.score} PTS | {p.health}% HP
-                            </span>
-                          </div>
+                      <div className="choices">
+                        {room.incident.choices.map((choice, index) => (
+                          <button
+                            key={index}
+                            className="choice"
+                            disabled={submitted}
+                            onClick={() => submitMultiplayerAnswer(index)}
+                          >
+                            <span>{String.fromCharCode(65 + index)}</span>
+                            {choice}
+                          </button>
                         ))}
-                    </div>
+                      </div>
+
+                      {multiplayerFeedback && (
+                        <div className={`feedback ${multiplayerFeedback.correct ? 'correct' : 'incorrect'
+                          }`}>
+                          {multiplayerFeedback.correct
+                            ? '✓ Correct! You earned 100 points.'
+                            : '✕ Incorrect response. Health reduced by 25%.'}
+                        </div>
+                      )}
+
+                      {submitted && (
+                        <p>Waiting for other players to finish...</p>
+                      )}
+
+                      <h3>🏆 Live Leaderboard</h3>
+
+                      <div className="player-list">
+                        {[...room.players]
+                          .sort((a, b) => b.score - a.score)
+                          .map((p, index) => (
+                            <div className="player-entry" key={p.id}>
+                              <span>
+                                {index + 1}. {p.name}
+                              </span>
+                              <span>
+                                {p.score} PTS | {p.health}% HP
+                              </span>
+                            </div>
+                          ))}
+                      </div>
+
+                    </div> {/* End mobile-gameplay-content */}
                   </div>
                 )}
-
 
                 {room.status === 'finished' && (
                   <div className="game-results">
