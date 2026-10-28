@@ -6,7 +6,7 @@ import { Server } from 'socket.io'
 import cors from 'cors'
 import 'dotenv/config'
 import OpenAI from 'openai'
-
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 const app = express()
 
 const allowedOrigins = [
