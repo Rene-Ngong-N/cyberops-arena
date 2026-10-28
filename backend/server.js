@@ -8,15 +8,25 @@ import 'dotenv/config'
 import OpenAI from 'openai'
 
 const app = express()
-app.use(cors())
+
+const allowedOrigins = [
+    'http://localhost:5173',
+    process.env.FRONTEND_URL
+].filter(Boolean)
+
+app.use(cors({
+    origin: allowedOrigins
+}))
+
 app.use(express.json())
 
 const httpServer = createServer(app)
+
 const io = new Server(httpServer, {
-    cors: { origin: true, methods: ['GET', 'POST'] }
-})
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY
+    cors: {
+        origin: allowedOrigins,
+        methods: ['GET', 'POST']
+    }
 })
 const rooms = new Map()
 
