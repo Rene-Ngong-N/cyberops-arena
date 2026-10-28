@@ -295,7 +295,41 @@ The following functionality has been tested during development and production ve
 - Production frontend and backend are deployed as separate services.
 
 This project is an educational simulation and is not intended to replace enterprise security monitoring or incident response systems.
+## 📸 Gameplay Screenshots
 
+The following screenshots demonstrate CyberOps Arena running in production with two synchronized multiplayer sessions.
+
+### 1. Multiplayer Lobby
+
+Players create or join a room using a unique six-character code. The host controls when the mission begins.
+
+![Multiplayer Lobby](screenshots/01-multiplayer-lobby.png)
+
+### 2. AI Mission Generation
+
+Both players see the AI mission preparation screen before gameplay begins.
+
+![AI Mission Generation](screenshots/02-ai-mission-generation.png)
+
+### 3. Security Operations Center Dashboard
+
+The live SOC dashboard displays attack progression, threat indicators, synchronized countdown timers, Cloud Health, and security events.
+
+![SOC Dashboard](screenshots/03-soc-dashboard.png)
+
+### 4. Mission Success
+
+The team successfully completes all three incidents. The Mission Summary displays final Cloud Health, individual scores, and player rankings.
+
+![Mission Success](screenshots/04-mission-success.png)
+
+### 5. Mission Failed
+
+The mission ends when Cloud Health reaches the failure threshold. Both players receive synchronized results and final rankings.
+
+![Mission Failed](screenshots/05-mission-failed.png)
+
+---
 ## 🔮 Future Improvements
 
 Potential enhancements include:
