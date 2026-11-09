@@ -2,6 +2,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import './App.css'
 import { socket } from './socket'
+import AuthPanel from './AuthPanel'
 const incidents = [
   {
     title: 'Suspicious AWS Login',
@@ -96,6 +97,9 @@ function App() {
 
 
   const [player, setPlayer] = useState('')
+  const [authView, setAuthView] = useState('guest')
+  const [authenticatedUser, setAuthenticatedUser] = useState(null)
+  const [authToken, setAuthToken] = useState(null)
   const [started, setStarted] = useState(false)
   const [round, setRound] = useState(0)
   const [score, setScore] = useState(0)
@@ -321,34 +325,92 @@ function App() {
               <>
                 <h2>Enter the Multiplayer Arena</h2>
                 <p>Challenge other cloud defenders in real time.</p>
+                {authView !== 'guest' && (
+                  <AuthPanel
+                    mode={authView}
+                    onBack={() => setAuthView('guest')}
+                    onLogin={(user, token) => {
+                      setAuthenticatedUser(user)
+                      setAuthToken(token)
+                      setPlayer(user.username)
+                      setAuthView('guest')
+                    }}
+                  />
+                )}
 
-                <input
-                  placeholder="Enter your player name"
-                  value={player}
-                  maxLength={24}
-                  onChange={event => setPlayer(event.target.value)}
-                />
+                {authView === 'guest' && (
+                  <div className="auth-navigation">
+                    {authenticatedUser ? (
+                      <>
+                        <h3>Welcome, {authenticatedUser.username}!</h3>
+                        <p>You are signed in to CyberOps Arena.</p>
 
-                <p className={connected ? 'good' : 'danger'}>
-                  {connected ? '● Multiplayer Connected' : '● Connecting to Server'}
-                </p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAuthenticatedUser(null)
+                            setAuthToken(null)
+                            setPlayer('')
+                            setAuthView('guest')
+                          }}
+                        >
+                          LOGOUT
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <h3>Player Accounts</h3>
+                        <p>Sign in to track your cybersecurity training progress.</p>
 
-                <button onClick={createRoom} disabled={!connected}>
-                  CREATE ROOM
-                </button>
+                        <button
+                          type="button"
+                          onClick={() => setAuthView('login')}
+                        >
+                          LOGIN
+                        </button>
 
-                <p>— OR —</p>
+                        <button
+                          type="button"
+                          onClick={() => setAuthView('register')}
+                        >
+                          CREATE ACCOUNT
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
+                {authView === 'guest' && (
+                  <>
 
-                <input
-                  placeholder="Enter 6-character room code"
-                  value={roomCode}
-                  maxLength={6}
-                  onChange={event => setRoomCode(event.target.value.toUpperCase())}
-                />
+                    <input
+                      placeholder="Enter your player name"
+                      value={player}
+                      maxLength={24}
+                      onChange={event => setPlayer(event.target.value)}
+                    />
 
-                <button onClick={joinRoom} disabled={!connected}>
-                  JOIN ROOM
-                </button>
+                    <p className={connected ? 'good' : 'danger'}>
+                      {connected ? '● Multiplayer Connected' : '● Connecting to Server'}
+                    </p>
+
+                    <button onClick={createRoom} disabled={!connected}>
+                      CREATE ROOM
+                    </button>
+
+                    <p>— OR —</p>
+
+                    <input
+                      placeholder="Enter 6-character room code"
+                      value={roomCode}
+                      maxLength={6}
+                      onChange={event => setRoomCode(event.target.value.toUpperCase())}
+                    />
+
+                    <button onClick={joinRoom} disabled={!connected}>
+                      JOIN ROOM
+                    </button>
+                  </>
+                )}
               </>
             ) : (
               <>

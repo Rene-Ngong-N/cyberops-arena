@@ -1,4 +1,4 @@
-
+import authRouter from './auth.js'
 import express from 'express'
 import { createServer } from 'node:http'
 import { randomBytes } from 'node:crypto'
@@ -19,6 +19,7 @@ app.use(cors({
 }))
 
 app.use(express.json())
+app.use('/api/auth', authRouter)
 
 const httpServer = createServer(app)
 
